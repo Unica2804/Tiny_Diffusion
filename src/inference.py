@@ -1,12 +1,13 @@
 import torch
-import tqdm
+from tqdm import tqdm
 import numpy as np
 import scipy.ndimage
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-from src.Data_preprocessing import DirectionalMNISTDataset
+# from src.Data_preprocessing import DirectionalMNISTDataset
 from src.network import tiny3Dunet
+from src.user_img_preprocessor import smart_preprocess
 
 T=1000
 beta=torch.linspace(1e-4,0.02,T)
@@ -15,20 +16,25 @@ alpha_bar=torch.cumprod(alpha,dim=0)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 @torch.no_grad()
-def generate_writing_sample(model, digit_index=None):
+def generate_writing_sample(model, image, digit_index=None):
     # 1. Get a Test Image
-    test_ds = DirectionalMNISTDataset(train=False)
+    # test_ds = DirectionalMNISTDataset(train=False)
     
-    if digit_index is None:
-        for i in range(len(test_ds)):
-            _, label = test_ds[i]
-            if label == 7:
-                digit_index = i
-                break
+    # if digit_index is None:
+    #     for i in range(len(test_ds)):
+    #         _, label = test_ds[i]
+    #         if label == 7:
+    #             digit_index = i
+    #             break
+    if image is None: return None
+
+    if isinstance(image, dict):
+        image = image["composite"]
     
-    video_tensor, label = test_ds[digit_index]
-    
-    ref_frame = video_tensor[:,-1, :, :].to(device)
+    # video_tensor, label = test_ds[digit_index]
+
+    ref_frame= smart_preprocess(image).to(device)
+    # ref_frame = video_tensor[:,-1, :, :].to(device)
     
     condition = ref_frame.unsqueeze(1).repeat(1, 16, 1, 1).unsqueeze(0) # (1, 1, 16, 28, 28)
     
@@ -38,7 +44,7 @@ def generate_writing_sample(model, digit_index=None):
     alpha_bar_gpu = alpha_bar.to(device)
     beta_gpu = beta.to(device)
 
-    print(f"Generating animation for Digit {label}...")
+    # print(f"Generating animation for Digit {label}...")
     
     for i in tqdm(reversed(range(1000)), total=1000, desc="Writing"):
         t = torch.tensor([i]).to(device)
@@ -87,14 +93,16 @@ def smooth_ink_video(generated_video, ref_image, filename="hq_smooth_writing.gif
         im2 = ax2.imshow(clean_frame, cmap='gray', animated=True)
         ims.append([im1, im2])
 
-    ani = animation.ArtistAnimation(fig, ims, interval=30, blit=True)
+    ani = animation.ArtistAnimation(fig, ims, interval=150, blit=True)
     ani.save(filename, writer='pillow')
+    plt.close()
     print(f"Saved smoothed video: {filename}")
+    return filename
 
 
-model = tiny3Dunet().to(device)
-model.load_state_dict(torch.load("model/mnist_motion_3d_v3.pth", map_location=device))
-model.eval()
-print("Model loaded successfully.")
-generated_video, ref_image = generate_writing_sample(model)
-smooth_ink_video(generated_video, ref_image)
+# model = tiny3Dunet().to(device)
+# model.load_state_dict(torch.load("model/mnist_motion_3d_v3.pth", map_location=device))
+# model.eval()
+# print("Model loaded successfully.")
+# generated_video, ref_image = generate_writing_sample(model)
+# smooth_ink_video(generated_video, ref_image)
