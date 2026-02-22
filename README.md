@@ -4,6 +4,10 @@ Tiny Img-to-Vid is a deep learning project that generates video sequences from s
 
 ![Demo](assets/Demo.gif)
 
+# Technical details
+
+Link: https://medium.com/@unicaofficial123/tiny-diffusion-3c23883af67d
+
 ## Features
 
 - 3D U-Net architecture for spatiotemporal modeling
