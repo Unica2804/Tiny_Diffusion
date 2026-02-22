@@ -3,6 +3,8 @@ from torch.utils.data import Dataset,DataLoader
 import numpy as np
 import torch.optim as optim
 from tqdm import tqdm
+from .network import tiny3Dunet
+from .Data_preprocessing import DirectionalMNISTDataset
 
 torch.backends.cudnn.benchmark = True
 device = "cuda" if torch.cuda.is_available() else "cpu"
